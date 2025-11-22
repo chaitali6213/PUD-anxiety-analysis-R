@@ -1,0 +1,1207 @@
+---
+GROUP 7 PROJECT
+title: "ASSESSMENT OF ANXIETY LEVELS IN PEPTIC ULCERS DISEASE PATIENTS USING HMA SCALE"
+Research Question:
+  What is the level of anxiety in Peptic ulcer patients and in which age group and gender is most affected and what are the conditions (social or economic) leading to this co-existing with the disease condition including the causes and social habits?
+Group Members: 
+Ranjith Nathi
+Vanitha Ajmeera
+Chaitali Gopal Chaudhari
+Priyanka Vemulapalli
+Keerthi Vallabhaneni
+
+---
+                 ############################Package Installation#######################
+```{r}
+
+install.packages(c("descr","tableone","kableExtra","semTools","qualvar","labelled","ggmosaic","waffle","gridExtra","readxl","fmsb","lsr","car","dunn.test","lmtest" ), dependencies = TRUE)
+
+```
+
+                 ###########################Loading the packages################
+```{r}
+packages <- c('descr','tableone','kableExtra','semTools','qualvar','labelled','tidyverse', 'knitr','haven','descr','fmsb','lsr','ggmosaic','waffle','gridExtra','readxl','data.table','car','dunn.test','lmtest')
+
+```
+
+
+```{r}
+purrr::walk(packages,library,character.only=T)
+```
+
+```{r}
+library(readxl)
+# read the PUD data
+peptic.ulcers <- read_excel("group7_data3.xlsx")
+
+# Drop rows with NA values
+peptic.ulcers <- na.omit(peptic.ulcers)
+
+
+```
+```{r}
+# examine the data
+summary(object = peptic.ulcers)
+```
+
+
+
+
+```{r}
+library(package = "tidyverse")
+peptic.ulcers.cleaned <- peptic.ulcers %>%
+  dplyr::select(age,sex,marital_status,area,education_status,regular_exercise,over_weight,monthly_income,
+         Family_PUD,diet,spicy_food,type_of_ulcer,cause,smoking,score)%>%
+  mutate(age_cat= cut(age, breaks = c(15, 30, 50, 75), labels = c("15-30", "31-50", "51-75"), include.lowest= TRUE)) %>%
+  dplyr::select(-age) %>% # remove the original `age` column
+  mutate(sex= factor(x = sex, labels = c("MALE","FEMALE"))) %>%
+  mutate(area= recode_factor(.x = area, 
+                                  `1` = "urban", 
+                                  `2` = "rural", 
+                                  .default = "unknown")) %>% 
+  mutate(marital_status= recode_factor(.x = marital_status, 
+                                  `1` = "married", 
+                                  `2` = "unmarried", 
+                                  .default = "unknown")) %>% 
+  mutate(education_status= recode_factor(.x = education_status, 
+                                  `1` = "less than high school", 
+                                  `2` = "high school",
+                                  `3` = "college", 
+                                  .default = "unknown")) %>%
+  mutate(regular_exercise= recode_factor(.x = regular_exercise, 
+                                  `1` = "Yes", 
+                                  `2` = "No",
+                                  .default = "unknown")) %>%
+  mutate(over_weight= recode_factor(.x = over_weight, 
+                                  `1` = "under weight", 
+                                  `2` = "healthy weight", 
+                                  `3` = "over weight", 
+                                  `4` = "obesity",
+                                  .default = "unknown")) %>%
+  mutate(monthly_income= recode_factor(.x = monthly_income, 
+                                  `1` = "$0 to $15000", 
+                                  `2` = "$15,001 to $30000", 
+                                  `3` = "$30,001 to $100000", 
+                                  .default = "unknown")) %>%
+  mutate(Family_PUD= recode_factor(.x = Family_PUD, 
+                                                        `1` = "Yes",
+                                                        `2` = "No",
+                                                        .default = "unknown")) %>%
+  mutate(diet= recode_factor(.x = diet, 
+                              `1` = "Vegetarian",
+                              `2` = "Non vegetarian",
+                              .default = "unknown")) %>%
+  mutate(spicy_food= recode_factor(.x = spicy_food, 
+                                     `1` = "Yes",
+                                     `2` = "No",
+                                     .default = "unknown")) %>%
+  mutate(type_of_ulcer= recode_factor(.x = type_of_ulcer, 
+                                  `1` = "Gastric ulcer", 
+                                  `2` = "duodenal ulcer",
+                                  `3` = "Both")) %>%
+  mutate(cause= recode_factor(.x = cause,
+                                           `1` = "H Pylori", 
+                                  `2` = "NSAIDS use", 
+                                  `3` = "Stress", 
+                                  `4` = "Alcohol",
+                                  `5` = "Irregular food intake")) %>%
+  mutate(smoking= recode_factor(.x = smoking, 
+                                 `1` = "light",
+                                 `2` = "heavy",
+                                 `3` = "No")) %>%
+  mutate(HMA.score_cat = cut(score, breaks = c(0, 17, 24, 30, 56), labels = c("mild", "moderate", "severe","very severe"), include.lowest = TRUE)) %>%
+  dplyr::select(-score) %>% # remove the original `score` column
+  rename(BMI = over_weight) %>%
+  dplyr::select(age_cat,sex,marital_status,area,education_status,regular_exercise,BMI,monthly_income,
+         Family_PUD,diet,spicy_food,type_of_ulcer,cause,smoking,HMA.score_cat)
+head(peptic.ulcers.cleaned)
+                                          
+
+```
+
+
+```{r}
+summary(peptic.ulcers.cleaned)
+```
+
+
+```{r}
+# trying describe for descriptive statistics
+Hmisc::describe(x = peptic.ulcers.cleaned)
+```
+
+Interpretation:
+
+The output shows the descriptive statistics for each categorical variable. 
+
+- `age_cat`: The variable `age_cat` has three categories, 15-30, 31-50, and 51-75, with frequencies of 60, 88, and 90, respectively. About 37.8% of the observations fall under the age range of 51-75 years.
+
+- `sex`: The variable `sex` has two categories, MALE and FEMALE, with frequencies of 64 and 174, respectively. About 73.1% of the observations are females.
+
+- `marital_status`: The variable `marital_status` has two categories, married and unmarried, with frequencies of 196 and 42, respectively. About 82.4% of the observations are married.
+
+- `area`: The variable `area` has two categories, urban and rural, with frequencies of 112 and 126, respectively. About 52.9% of the observations are from rural areas.
+
+- `education_status`: The variable `education_status` has three categories, less than high school, high school, and college, with frequencies of 104, 30, and 104, respectively. About 43.7% of the observations have less than high school education, while the same proportion have college education.
+
+- `regular_exercise`: The variable `regular_exercise` has two categories, Yes and No, with frequencies of 70 and 168, respectively. About 70.6% of the observations do not exercise regularly.
+
+- `BMI`: The variable `BMI` has four categories, underweight, healthy weight, overweight, and obesity, with frequencies of 48, 126, 52, and 12, respectively. About 52.9% of the observations are of healthy weight.
+
+- `monthly_income`: The variable `monthly_income` has three categories, $0 to $15000, $15,001 to $30000, and $30,001 to $100000, with frequencies of 152, 80, and 6, respectively. About 63.9% of the observations have a monthly income of $0 to $15000.
+
+- `Family_PUD`: The variable `Family_PUD` has three categories, Yes, No, and unknown, with frequencies of 4, 170, and 64, respectively. About 71.4% of the observations do not have a family history of PUD.
+
+- `diet`: The variable `diet` has two categories, Vegetarian and Non-vegetarian, with frequencies of 12 and 226, respectively. About 95% of the observations are non-vegetarian.
+
+- `spicy_food`: The variable `spicy_food` has two categories, Yes and No, with frequencies of 146 and 92, respectively. About 61.3% of the observations consume spicy food.
+
+- `type_of_ulcer`: The variable `type_of_ulcer` has three categories, Gastric ulcer, Duodenal ulcer, and Both, with frequencies of 132, 72, and 34, respectively. About 55.5% of the observations have gastric ulcer.
+
+- `cause`: The variable `cause` has five categories, H Pylori, NSAIDS use, Stress, Alcohol, and Irregular food intake, with frequencies of 30, 53, 55, 5, and 95, respectively. About 39.9% of the observations have irregular food intake as the cause.
+
+- For the "smoking" variable, we can see that out of 238 observations, 192 (80.7%) were non-smokers, 24 (10.1%) were light smokers, and 22 (9.2%) were heavy smokers.
+
+- For the "HMA.score_cat" variable, we can see that out of 238 observations, 136 (57.1%) had a mild score, 80 (33.6%) had a moderate score, 20 (8.4%) had a severe score, and 2 (0.8%) had a very severe score. This variable is likely related to the severity of the peptic ulcers.
+
+
+
+
+
+```{r}
+# Now, we will check the data types of all variables and correct them if necessary.
+str(peptic.ulcers.cleaned)
+```
+
+
+
+
+```{r}
+# Develop a well-formatted table, including all variables in the small data set?
+
+# Creating a well-formatted transgender result table
+
+ulcers.table <- data.frame(Variable = colnames(peptic.ulcers), 
+                           Mean = sapply(peptic.ulcers, mean), 
+                           Median = sapply(peptic.ulcers, median),
+                           SD = sapply(peptic.ulcers, sd), 
+                           Min = sapply(peptic.ulcers, min),
+                           Max = sapply(peptic.ulcers, max) 
+                           ) 
+
+# visuvalization of the transgender results table
+head(ulcers.table)
+
+# now i'm saving the transgender result table to a CSV file
+write.csv(ulcers.table, "ulcers.table.csv", row.names = FALSE)
+
+
+#here we can see the descriptive statistics of the given data
+```
+
+
+
+```{r}
+#To perform descriptive statistics on all variables, i'm using the CreateTableOne function from the tableone package
+
+ulcers.table <- CreateTableOne(vars = c("age_cat","sex","area","marital_status","education_status",
+                                         "regular_exercise","BMI","monthly_income","Family_PUD","diet",
+                                         "spicy_food","type_of_ulcer","cause","smoking","HMA.score_cat"),
+                               data = peptic.ulcers.cleaned)
+
+
+#Here i'm going display the descriptive statistics using print function.
+
+print(ulcers.table, type="html", nonnormal = "HMA.score_cat", headings = c("Variable", "Category", "N", "Mean", "SD", "Min", "Max", "Pctl_25", "Pctl_75"),
+      stddev = c("SD"),
+      test = FALSE,
+      formattable = formattable(round(x, 2), digits = 2),
+      table.attr = "class='table table-striped'")
+```
+
+Interpretation:
+
+- There were 238 participants in total. 
+
+- The majority of participants were between the ages of 31-50 or 51-75, with only 25.2% between 15-30 years old.
+
+- The majority of participants were female (73.1%) and lived in rural areas (52.9%). 
+
+- Most participants had at least some college education (43.7% with college degrees, 12.6% with a high school diploma, and 43.7% with less than a high school education). 
+
+- Only 29.4% of participants reported engaging in regular exercise.
+
+- The majority of participants (52.9%) had a healthy weight, with smaller percentages categorized as underweight (20.2%), overweight (21.8%), or obese (5.0%).
+
+- Most participants reported a monthly income of $0-$15,000 (63.9%). 
+- Few participants reported a family history of peptic ulcer disease (1.7% reported a positive history), and most did not know their family history (26.9%). 
+
+- The majority of participants (95.0%) reported consuming non-vegetarian diets. 
+- Only 38.7% of participants reported consuming spicy foods.
+
+- Most participants were diagnosed with gastric ulcers (55.5%), with smaller percentages diagnosed with duodenal ulcers (30.3%) or both (14.3%). 
+
+- The most common reported cause of peptic ulcer disease was irregular food intake (39.9%), followed by stress (23.1%), NSAID use (22.3%), and H. pylori infection (12.6%).
+
+- Most participants reported not smoking (80.7%), with smaller percentages reporting light (10.1%) or heavy (9.2%) smoking. 
+
+- Based on their HMA score, most participants had mild (57.1%) or moderate (33.6%) cases of peptic ulcer disease, while only a small percentage had severe (8.4%) or very severe (0.8%) cases.
+
+
+```{r}
+#To perform descriptive statistics on all variables comparing to HMA score, i'm using the CreateTableOne function from the tableone package
+
+ulcers.table <- CreateTableOne(vars = c("age_cat","sex","area","marital_status","education_status",
+                                         "regular_exercise","BMI","monthly_income","Family_PUD","diet",
+                                         "spicy_food","type_of_ulcer","cause","smoking","HMA.score_cat"),
+                               strata = "HMA.score_cat",
+                               data = peptic.ulcers.cleaned)
+
+
+#Here i'm going display the descriptive statistics using print function.
+
+print(ulcers.table, type="html", nonnormal = "HMA.score_cat", headings = c("Variable", "Category", "N", "Mean", "SD", "Min", "Max", "Pctl_25", "Pctl_75"),
+      stddev = c("SD"),
+      test = FALSE,
+      formattable = formattable(round(x, 2), digits = 2),
+      table.attr = "class='table table-striped'")
+```
+
+Interpretation:
+The table shows that the majority of patients in all four HMA score categories were females (ranging from 62.5% to 80.0%). The highest percentage of patients in the age category of 51-75 were in the severe and very severe HMA score categories (70.0% and 100.0%, respectively). 
+The majority of patients in all four HMA score categories lived in rural areas (ranging from 50.0% to 60.0%). The majority of patients in all four HMA score categories did not exercise regularly (ranging from 62.5% to 76.5%).
+
+In terms of BMI, the highest percentage of patients in the severe and very severe HMA score categories were overweight (30.0% and 100.0%, respectively) or obese (10.0% and 0.0%, respectively). 
+
+The majority of patients in all four HMA score categories had a monthly income of $0 to $15,000 (ranging from 58.8% to 70.0%). The majority of patients in all four HMA score categories consumed non-vegetarian diets (ranging from 92.5% to 100.0%).
+
+In terms of the type of ulcer, the majority of patients in all four HMA score categories had gastric ulcers (ranging from 50.0% to 60.0%). The highest percentage of patients in the mild, moderate, and severe HMA score categories had PUD caused by NSAIDs use (20.0%, 25.0%, and 10.0%, respectively). Only patients in the mild and moderate HMA score categories had PUD caused by H. pylori (8.8% and 20.0%, respectively).
+
+Overall, the table suggests that the severity of the HMA score is associated with certain demographic and clinical characteristics of patients with PUD, such as age, sex, low income, BMI, diet, and the cause of PUD.
+.......................................................................................................
+
+#######################################                Data Visualization        ######################## ###########################################################################################################
+
+
+
+```{r}
+### GRAPH OF HMA SCORE
+peptic.ulcers.cleaned %>%
+    drop_na(HMA.score_cat) %>% #removing NA
+    ggplot(aes(x = HMA.score_cat)) +
+    geom_bar() +
+    labs(x = "HMA SCORE", y = "Number of participants")
+
+```
+## INTERPRETATION:
+According to the above graph we can interpret that lot of participants have mild to moderate HMA score.
+Very less participent have very severe HMA score.
+
+
+
+```{r}
+# GRAPH OF AGE 
+peptic.ulcers.cleaned %>%
+    drop_na(age_cat) %>% #removing NA
+    ggplot(aes(x = age_cat)) +
+    geom_bar() +
+    labs(x = "Age", y = "Number of participants")
+
+```
+## INTERPREATATION:
+Above graph shows that more participants are of the age between 51-57 and less participants are of age between 15-30.
+
+
+```{r}
+## GRAPH OF INCOME-
+peptic.ulcers.cleaned %>%
+    drop_na(monthly_income) %>% #removing NA
+    ggplot(aes(x = monthly_income)) +
+    geom_bar() +
+    labs(x = "INCOME", y = "Number of participants")
+
+```
+## INTERPRETATION:
+From the above graph we can see that many people have income ranges between $0 to $15000 and very few people are of high income.
+
+
+```{r}
+## GRAPH OF TYPE OF ULCER-
+peptic.ulcers.cleaned %>%
+    drop_na(type_of_ulcer) %>% #removing NA
+    ggplot(aes(x = type_of_ulcer)) +
+    geom_bar() +
+    labs(x = "TYPE OF ULCER", y = "Number of participants")
+
+```
+## INTERPREATATION:
+The above Garph states that many participants have Gastric ulcer.
+There are very less participants who have both ulcers means Gastric and duodenal ulcer.
+
+
+```{r}
+# GRAPH OF CAUSE OF ULCER-
+peptic.ulcers.cleaned %>%
+    drop_na(cause) %>% #removing NA
+    ggplot(aes(x = cause)) +
+    geom_bar() +
+    labs(x = "CAUSE", y = "Number of participants")
+
+```
+## INTERPREATATION:
+This graphs tells us that Irregular food intake is more cause of peptic ulcer.
+Peptic ulcer cause from H.Pylori is very less seen in participants.
+
+```{r}
+### BAR GRAPH FOR MARITAL STATUS and HMA score-
+marital.peptic.ulcers <-peptic.ulcers.cleaned %>%
+  drop_na(HMA.score_cat) %>%
+  ggplot(aes(x = HMA.score_cat, fill = marital_status)) +
+  geom_bar(position = "dodge") +
+  theme_minimal() +
+  labs(x = "HMA SCORE", y = "MARITAL STATUS") +
+  scale_fill_manual(values = c("#7463AC", "gray80"),
+  name = "HMA SCORE")
+
+marital.peptic.ulcers
+
+```
+## INTERPREATATION:
+From the above bar graph one can state that more married people have Mild HMA Score and very less married people have Very severe HMA score.
+More Unmarried people have mild HMA score and Non of the unmarried people have very severe HMA score. 
+
+
+```{r}
+##  Graph HMA score by Sex
+sex.peptic.ulcers <-peptic.ulcers.cleaned %>%
+  drop_na(HMA.score_cat) %>%
+  ggplot(aes(x = HMA.score_cat, fill = sex)) +
+  geom_bar(position = "dodge") +
+  theme_minimal() +
+  labs(x = "HMA SCORE", y = "SEX") +
+  scale_fill_manual(values = c("#7463AC", "gray80"),
+  name = "HMA SCORE")
+
+sex.peptic.ulcers
+```
+## INTERPRETATION:
+From above bar Graph one can interprets that Female have more Mild HMA score as compare to male. Less Very severe HMA score is seen male.
+
+
+
+```{r}
+##  Graph HMA score by Type of Ulcer 
+peptic.ulcers.cleaned %>%
+              drop_na(HMA.score_cat) %>%
+              ggplot(aes(y = type_of_ulcer, x = HMA.score_cat)) +
+              geom_jitter(aes(color = HMA.score_cat), alpha = .6) +
+              geom_boxplot(aes(fill= HMA.score_cat), alpha = .4) +
+  #Note: Spectral is the palette for rainbow colors
+              scale_fill_brewer(palette = "Spectral", guide = FALSE) +
+              scale_color_brewer(palette = "Spectral", guide = FALSE) +
+              theme_minimal() +
+              labs(x = "HMA SCORE", y = "TYPE OF ULCER")
+```
+## INTERPREATATION:
+Above Graph states that gastric ulcer have more number of mild HMA score and very severe HMA score.
+Duodenal ulcer and both type of ulcer have Moderate number of HMA score.
+
+
+
+
+```{r}
+##  Graph HMA score by Age
+peptic.ulcers.cleaned %>%
+      drop_na(HMA.score_cat) %>%
+      ggplot(aes(x = HMA.score_cat)) +
+      geom_density(aes(fill = age_cat)) +
+      facet_wrap(facets = vars(age_cat), nrow = 2) +
+      scale_fill_brewer(palette = "Spectral", guide = FALSE) +
+  theme_minimal() +
+  labs(x = "HMA SCORE",
+   y = "Age")
+```
+## INTERPREATTION:
+The above density graph tells us that age group between 15-30, 31-50 and 51-75 have more number of mild HMA score.
+As There are more number of participants in the age group 51-75, we can say that Mild HMA Score is also more in that age group.
+
+```{r}
+## Graph HMA score by Cause of Ulcer 
+ease.graph <- peptic.ulcers.cleaned%>%
+              drop_na(HMA.score_cat) %>%
+              drop_na(cause) %>%
+              group_by(HMA.score_cat,cause) %>%
+              count() %>%
+              group_by(cause) %>%
+              ggplot(aes(x = HMA.score_cat,y= cause)) +
+              geom_bar(position = "dodge", stat = "identity") +
+              theme_minimal() +
+              scale_fill_manual(values = c("gray", "#7463AC"),
+              name = "HMA SCORE") +
+              labs(x = "SCORE", y = "cause of ulcer") +
+              theme(axis.text.x = element_blank())
+
+ease.graph
+```
+### Interpretation:
+From this graph we can interprets that, there are more numbers of  Both mild and Moderate HMA score which cause by the irregular food intake followed by stress and NSAIDs use.
+Very less number are there for Very sever HMA score which is cause by the NSAIDs use.
+
+
+                    ######################    Test statistics chi squared and Two way anova        #################################################################################################################### 
+
+* HMA score and sex: 
+Here are the null and alternate hypotheses for the HMA scores:
+  
+  H0: HMA score is same across different gender.
+  HA: HMA score not the same across different gender.
+  
+
+```{r}
+# In this step we are going to get the test statistic & p-value
+chisq.test(x = peptic.ulcers.cleaned$HMA.score_cat, y = peptic.ulcers.cleaned$sex)
+
+```
+Interpretation:
+The test statistic (X-squared) is 13.249, with 3 degrees of freedom (df) and a p-value of 0.004129.
+
+Since the p-value is less than the commonly used alpha level of 0.05, we can reject the null hypothesis that there is no association between the two variables. This suggests that there is a statistically significant association between the HMA score category and sex in relation to the incidence of peptic ulcers.
+
+
+When the expected frequencies in one or more cells are less than 5, it is recommended to use an alternative test, such as Fisher's exact test, which is more appropriate for analyzing small sample sizes or low expected frequencies.
+```{r}
+fisher_test <- fisher.test(peptic.ulcers.cleaned$HMA.score_cat, peptic.ulcers.cleaned$sex )
+fisher_test
+```
+Interpretation:
+These results obtained from Fisher's exact test suggest that there is a statistically significant association between the two categorical variables, "HMA.score_cat" and "sex", with a p-value of 0.004601.
+
+The alternative hypothesis for Fisher's exact test is two-sided, which means that it tests whether there is any association between the two variables, regardless of the direction. This is in contrast to the chi-squared test, which is one-sided and tests whether there is a positive or negative association between the variables.
+
+Comparing these results to the previous chi-squared test with a p-value of 0.004129, both tests provide strong evidence against the null hypothesis of no association between the two variables. However, Fisher's exact test may be more appropriate when the sample size is small or when the expected frequencies in one or more cells are less than 5, as it does not rely on the same assumptions as the chi-squared test.
+
+Therefore, based on these results, we can conclude that there is a statistically significant association between the HMA score category and sex in relation to the incidence of peptic ulcers.
+
+
+............................................................................................
+
+* HMA score and age: 
+Here are the null and alternate hypotheses for the HMA scores:
+  
+  H0: HMA score is same across different age.
+  HA: HMA score not the same across different age.
+
+```{r}
+chisq.test(x = peptic.ulcers.cleaned$HMA.score_cat, y = peptic.ulcers.cleaned$age_cat)
+
+```
+Interpretation:
+These results obtained from Pearson's chi-squared test suggest that there is a statistically significant association between the two categorical variables, "HMA.score_cat" and "age_cat", with a p-value of 0.01716.
+
+The chi-squared test indicates the strength and direction of the association between two categorical variables. In this case, the test statistic X-squared is 15.43, which indicates a moderate to strong association between the two variables. The degrees of freedom (df) is 6,
+
+```{r}
+fisher_test <- fisher.test(peptic.ulcers.cleaned$HMA.score_cat, peptic.ulcers.cleaned$age_cat )
+fisher_test
+```
+Interpretation:
+The results obtained from Fisher's exact test for the association between "HMA.score_cat" and "age_cat" suggest that there is a statistically significant association between the two categorical variables, with a p-value of 0.01448.
+
+When comparing these results to the previous Pearson's chi-squared test with a p-value of 0.01716, both tests provide evidence against the null hypothesis of no association between the two variables. However, Fisher's exact test may be more appropriate when the sample size is small or when the expected frequencies in one or more cells are less than 5, as it does not rely on the same assumptions as the chi-squared test.
+
+Overall, both tests suggest a statistically significant association between HMA.score_cat and age_cat.
+........................................................................................................
+
+* HMA score and BMI: 
+Here are the null and alternate hypotheses for the HMA scores:
+  
+  H0: HMA score is same across BMI.
+  HA: HMA score not the same across BMI.
+```{r}
+chisq.test(x = peptic.ulcers.cleaned$HMA.score_cat, y = peptic.ulcers.cleaned$BMI)
+```
+Interpretation:
+The test statistic calculated is X-squared = 25.07, with degrees of freedom (df) = 9, and a corresponding p-value of 0.002895.
+
+The p-value is less than the significance level of 0.05, which indicates that there is evidence to reject the null hypothesis that there is no association between the two variables. In other words, there is a statistically significant association between "HMA.score_cat" and "BMI".
+
+To further investigate the nature of the association, additional analyses such as post-hoc tests or regression analyses may be necessary.
+..............................................................................................................
+
+* HMA score and type of ulcer: 
+Here are the null and alternate hypotheses for the HMA scores:
+  
+  H0: HMA score is same across different ulcers.
+  HA: HMA score not the same across different ulcers.
+
+
+```{r}
+chisq.test(x = peptic.ulcers.cleaned$HMA.score_cat, y = peptic.ulcers.cleaned$type_of_ulcer)
+```
+Interpretation:
+The test statistic calculated is X-squared = 3.3375, with degrees of freedom (df) = 6, and a corresponding p-value of 0.7655.
+
+The p-value is greater than the significance level of 0.05, which indicates that there is no evidence to reject the null hypothesis that there is no association between the two variables. In other words, there is no statistically significant association between "HMA.score_cat" and "type_of_ulcer".
+..............................................................................................
+* HMA score and cause: 
+Here are the null and alternate hypotheses for the HMA scores:
+  
+  H0: HMA score is same across different causes.
+  HA: HMA score not the same across different causes.
+
+```{r}
+chisq.test(x = peptic.ulcers.cleaned$HMA.score_cat, y = peptic.ulcers.cleaned$cause)
+```
+Interpretation:
+The test statistic calculated is X-squared = 36.568, with degrees of freedom (df) = 12, and a corresponding p-value of 0.0002624.
+
+The p-value is less than the significance level of 0.05, which indicates that there is evidence to reject the null hypothesis that there is no association between the two variables. In other words, there is a statistically significant association between "HMA.score_cat" and "cause".
+
+..........................................................................................
+
+#Age,sex,cause and BMI were significantly associated with HMA score
+* Standardized residuals (like z-score    s) can aid analysts in determining   which of the observed frequencies are significantly larger or smaller    than expected. 
+* The standardized residual is computed by subtracting the expected value   in a cell from the observed value in a cell and dividing by the square   root of the expected value
+* The resulting value is the standardized residual and is distributed      like a z-score.
+* Values of the standardized residuals that are higher than 1.96 or lower   than –1.96 indicate that the observed value in that group is much        higher or lower than the expected value. 
+* These are the groups that are contributing the most to a large           chi-squared statistic and could be examined further and included in the   interpretation.
+* Standardized residuals are available with the chi-squared statistic      from the CrossTable() function in the descr package.
+
+```{r}
+# chi-squared examining HMA score and age
+library(package = "descr")
+CrossTable(x = peptic.ulcers.cleaned$HMA.score_cat,
+           y = peptic.ulcers.cleaned$age_cat,
+           expected = TRUE, # expected value
+           prop.c = FALSE, # default to include proportions in the column (disabling that by assigning FALSE)
+           prop.t = FALSE, # default to include proportion out of total (disabling that by assigning FALSE)
+           prop.chisq = FALSE, # default to include proportions of the chi-squared (disabling that by assigning FALSE)
+           chisq = TRUE, # chi-squared
+           sresid = TRUE) #standardized residuals
+ 
+
+```
+
+Interpretation:
+Looking at the standardized residuals, we can see that in the mild HMA score group, the observed values for the 31-50 age group are higher than expected (0.426), while the observed values for the 15-30 age group are lower than expected (-0.049). This suggests that middle-aged patients may be more likely to have a mild HMA score, while younger patients may be less likely to have a mild HMA score.
+
+Similarly, in the severe HMA score group, we see that the observed values for the 51-75 age group are much higher than expected (2.341), while the observed values for the 15-30 and 31-50 age groups are much lower than expected (-0.464 and -1.984, respectively). This suggests that older patients may be much more likely to have a severe HMA score, while younger patients may be much less likely to have a severe HMA score.
+
+
+..................................................................................................
+
+```{r}
+# chi-squared examining HMA score and age
+CrossTable(x = peptic.ulcers.cleaned$HMA.score_cat,
+           y = peptic.ulcers.cleaned$sex,
+           expected = TRUE, # expected value
+           prop.c = FALSE, # default to include proportions in the column (disabling that by assigning FALSE)
+           prop.t = FALSE, # default to include proportion out of total (disabling that by assigning FALSE)
+           prop.chisq = FALSE, # default to include proportions of the chi-squared (disabling that by assigning FALSE)
+           chisq = TRUE, # chi-squared
+           sresid = TRUE) #standardized residuals
+
+```
+
+Interpretation:
+
+Looking at the standardized residuals, we can see that in the mild HMA score group, the observed values for females are much higher than expected (0.860), while the observed values for males are much lower than expected (-1.417). This suggests that females may be more likely to have a mild HMA score than males.
+
+Similarly, in the moderate HMA score group, we see that the observed values for females are much higher than expected (1.830), while the observed values for males are much lower than expected (-1.110). This suggests that females may be more likely to have a moderate HMA score than males.
+
+For the severe and very severe HMA score categories, we see that the observed values are not very different from what would be expected by chance.
+
+In this case, it appears that there may be a relationship between sex and the severity of HMA score, with females being more likely to have a mild or moderate HMA score than males.
+
+..............................................................................
+
+```{r}
+# chi-squared examining HMA score and cause
+CrossTable(x = peptic.ulcers.cleaned$HMA.score_cat,
+           y = peptic.ulcers.cleaned$cause,
+           expected = TRUE, # expected value
+           prop.c = FALSE, # default to include proportions in the column (disabling that by assigning FALSE)
+           prop.t = FALSE, # default to include proportion out of total (disabling that by assigning FALSE)
+           prop.chisq = FALSE, # default to include proportions of the chi-squared (disabling that by assigning FALSE)
+           chisq = TRUE, # chi-squared
+           sresid = TRUE) #standardized residuals
+```
+
+Interpretation:
+Looking at the standardized residuals in the table provided, we can see that:
+
+- For the "H Pylori" column, the moderate category has a higher frequency than expected, while the severe category has a lower frequency than expected.
+- For the "NSAIDS use" column, the moderate category has a lower frequency than expected, while the severe category has a higher frequency than expected.
+- For the "Stress" column, the severe category has a higher frequency than expected.
+- For the "Alcohol" column, there are no significant differences between the observed and expected frequencies.
+- For the "Irregular food intake" column, the mild category has a higher frequency than expected, while the very severe category has a lower frequency than expected.
+
+.............................................................................................
+
+```{r}
+# chi-squared examining HMA score and BMI
+CrossTable(x = peptic.ulcers.cleaned$HMA.score_cat,
+           y = peptic.ulcers.cleaned$BMI,
+           expected = TRUE, # expected value
+           prop.c = FALSE, # default to include proportions in the column (disabling that by assigning FALSE)
+           prop.t = FALSE, # default to include proportion out of total (disabling that by assigning FALSE)
+           prop.chisq = FALSE, # default to include proportions of the chi-squared (disabling that by assigning FALSE)
+           chisq = TRUE, # chi-squared
+           sresid = TRUE) #standardized residuals
+```
+
+Interpretation:
+
+- For mild and healthy weight, the standardized residual is 1.179, indicating that the observed frequency is higher than expected.
+- For mild and obesity, the standardized residual is 0.436, indicating that the observed frequency is somewhat higher than expected.
+- For moderate and underweight, the standardized residual is 1.460, indicating that the observed frequency is much higher than expected.
+- For moderate and over weight, the standardized residual is -0.354, indicating that the observed frequency is somewhat lower than expected.
+- For severe and underweight, the standardized residual is 1.975, indicating that the observed frequency is much higher than expected.
+- For severe and over weight, the standardized residual is 0.780, indicating that the observed frequency is somewhat higher than expected.
+- For very severe and over weight, the standardized residual is 2.364, indicating that the observed frequency is much higher than expected.
+
+In general, standardized residuals with an absolute value greater than 1.96 (which corresponds to a significance level of 0.05) are considered statistically significant and suggest that the observed frequency deviates significantly from the expected frequency. Therefore, we can conclude that there are significant associations HMA score and BMI categories in this sample.
+...............................................................................................................
+
+```{r}
+# compute Cramér’s V for HMA score and sex
+# chi-squared analysis
+library(package = "lsr")
+cramersV(peptic.ulcers.cleaned$HMA.score_cat, peptic.ulcers.cleaned$sex)
+```
+How to interpret Cramer's V?
+* Small or weak effect size for V = .1
+* Medium or moderate effect size for V = .3
+* Large or strong effect size for V = .5
+
+In this case, the effect size is between small and medium. 
+
+Interpretation:
+
+There is a statistically significant relationship between HMA score and sex, and the relationship is weak to moderate.
+......................................................................................................
+```{r}
+cramersV(peptic.ulcers.cleaned$HMA.score_cat, peptic.ulcers.cleaned$age_cat)
+```
+In this case, the effect size is between small and medium. 
+
+Interpretation:
+
+There is a statistically significant relationship between HMA score and age, and the relationship is weak to moderate.
+......................................................................................................
+
+```{r}
+cramersV(peptic.ulcers.cleaned$HMA.score_cat, peptic.ulcers.cleaned$BMI)
+```
+In this case, the effect size is between small and medium. 
+
+Interpretation:
+
+There is a statistically significant relationship between HMA score and BMI, and the relationship is weak to moderate.
+......................................................................................................
+
+```{r}
+cramersV(peptic.ulcers.cleaned$HMA.score_cat, peptic.ulcers.cleaned$cause)
+```
+
+In this case, the effect size is between small and medium. 
+
+Interpretation:
+
+There is a statistically significant relationship between HMA score and cause, and the relationship is weak to moderate.
+......................................................................................................
+
+Interpretation of Chi-squared assumptions:
+
+Met Assumption 1: Variable are categorical.
+
+Unmet Assumption 2:The expected values are 5 or higher in at least 80% of groups.
+* For very small samples, the approximation is not great, so a different method of computing the p-value is better.
+
+#### The Fisher’s exact test is applied and provided information in the above codes. 
+  
+Met Assumption 3: The observations are independent.
+
+..................................................................................................................
+
+## Conduct a two-way ANOVA with score by sex and age. Interpret results and check assumptions.
+
+
+```{r}
+peptic.ulcers.cleaned2 <- peptic.ulcers %>%
+  dplyr::select(age,sex,over_weight,cause,score) %>%
+  mutate(age= cut(age, breaks = c(15, 30, 50, 75), labels = c("15-30", "31-50", "51-75"), include.lowest= TRUE)) %>%
+  mutate(cause= recode_factor(.x = cause,
+                                           `1` = "H Pylori", 
+                                  `2` = "NSAIDS use", 
+                                  `3` = "Stress", 
+                                  `4` = "Alcohol",
+                                  `5` = "Irregular food intake"))%>%
+  mutate(over_weight= recode_factor(.x = over_weight, 
+                                  `1` = "under weight", 
+                                  `2` = "healthy weight", 
+                                  `3` = "over weight", 
+                                  `4` = "obesity",
+                                  .default = "unknown"))
+head(peptic.ulcers.cleaned2)
+  
+
+```
+
+Two-way ANOVA NHST
+
+NHST Step 1: Write the null and alternate hypotheses
+
+  H0: The mean HMA score is the same across groups of age and sex.
+  HA: The mean HMA score is not same across groups of age and sex.
+  
+NHST Step 2: Compute the test statistic
+```{r}
+# two-way ANOVA HMA score by age and sex
+HMA.score.by.age.sex <- aov(formula = score ~ age * sex,
+                      data = peptic.ulcers.cleaned2)
+summary(object = HMA.score.by.age.sex)
+```
+NHST Step 3: Calculate the probability that your test statistic is at least as big as it is if there is no relationship (i.e., the null is true)
+  The p-value in this case was .0351
+
+NHST Steps 4 and 5: Interpret the probability and write a conclusion
+
+  There was a statistically significant interaction between age and sex on mean percent of HMA score [F(2, 232) = 3.396; p < .05].
+
+...........................................................................
+
+Post hoc test for two-way ANOVA
+* The Bonferroni post hoc test is not available in R for two-way ANOVA,
+  however, Tukey's HSD is available.
+* To determine which groups have statistically significantly different    mean technology use.
+
+```{r}
+#Tukey’s HSD post hoc test (From Line 1432)
+TukeyHSD(x = HMA.score.by.age.sex)
+```
+
+Interpretation:
+
+** The results of the Tukey multiple comparisons of means at a 95% family-wise confidence level for the factors age, sex, and the interaction between age and sex, based on the ANOVA model fit to the data.
+
+For the factor "age", there are three pairwise comparisons: 
+- 31-50 vs. 15-30: The estimated mean difference is -0.862 with a 95% confidence interval (CI) ranging from -2.92 to 1.20, and the p-value for the comparison is 0.585, which is not statistically significant.
+- 51-75 vs. 15-30: The estimated mean difference is 2.056 with a 95% CI ranging from 0.0074 to 4.104, and the p-value for the comparison is 0.049, which is statistically significant at the 0.05 level.
+- 51-75 vs. 31-50: The estimated mean difference is 2.918 with a 95% CI ranging from 1.08 to 4.76, and the p-value for the comparison is 0.001, which is statistically significant at the 0.05 level.
+
+For the factor "sex", there is one comparison:
+- Male vs. Female: The estimated mean difference is -2.168 with a 95% CI ranging from -3.67 to -0.67, and the p-value for the comparison is 0.005, which is statistically significant at the 0.05 level.
+
+For the interaction between "age" and "sex", there are twelve pairwise comparisons:
+- 31-50 Female vs. 15-30 Female: The estimated mean difference is 1.750 with a 95% CI ranging from -3.27 to 6.77, and the p-value for the comparison is 0.917, which is not statistically significant.
+- 51-75 Female vs. 15-30 Female: The estimated mean difference is 1.107 with a 95% CI ranging from -3.58 to 5.80, and the p-value for the comparison is 0.984, which is not statistically significant.
+- 15-30 Male vs. 15-30 Female: The estimated mean difference is -1.614 with a 95% CI ranging from -5.98 to 2.76, and the p-value for the comparison is 0.896, which is not statistically significant.
+- 31-50 Male vs. 15-30 Female: The estimated mean difference is -3.162 with a 95% CI ranging from -7.32 to 0.998, and the p-value for the comparison is 0.249, which is not statistically significant.
+- 51-75 Male vs. 15-30 Female: The estimated mean difference is 0.766 with a 95% CI ranging from -3.43 to 4.96, and the p-value for the comparison is 0.995, which is not statistically significant.
+- 51-75 Female vs. 31-50 Female: The estimated mean difference is -0.643 with a 95% CI ranging from -5.03 to 3.74, and the p-value for the comparison is 0.998, which is not statistically significant.
+- 15-30 Male vs. 31-50 Female: The estimated mean difference is -3.364 with a 95% CI ranging from -7.40 to 0.674, and the p-value for the comparison is 0.163, which is not
+
+
+###############################Two-way ANOVA assumptions##########################################################
+
+* The assumptions of homogeneity of variances and normality are also      applicable in two-way ANOVA. 
+* Normality would be a little trickier to test by looking at each group   since there are five degree groups, two sex groups, and 10              degree-by-sex groups (e.g., male and < high school). 
+* Instead of checking normality one group at a time when there are a      large number of groups in an ANOVA model, this assumption can be        checked by examining the residuals. 
+* The residuals are the distances between the value of the outcome for    each person and the value of the group mean for that person. 
+* When the residuals are normally distributed, this indicates that the    values in each group are normally distributed around the group mean.
+
+Test Normality
+* Shapiro-Wilk test to check the normality of the residuals               statistically
+
+```{r}
+# statistical test of normality for groups
+shapiro.test(x = HMA.score.by.age.sex$residuals)
+```
+
+Interpretation:
+* The null hypothesis for the Shapiro-Wilk test is that the distribution   is normal. 
+* By rejecting this null hypothesis with a p-value <0.01, the assumption   is failed. 
+* So, this test shows that the residuals fail the normality assumption.
+
+
+Next, graphing the residuals to confirm.
+* The ggplot() command doest not work with the ANOVA object, so           converting the residuals to a new data frame first and then graph       them
+
+```{r}
+# make a data frame
+HMA.score.by.age.sex <- data.frame(HMA.score.by.age.sex$residuals)
+
+# plot the residuals (Figure 7.21)
+library("tidyverse")
+HMA.score.by.age.sex %>%
+  ggplot(aes(x = HMA.score.by.age.sex.residuals)) +
+  geom_histogram(fill = "#7463AC", col = "white") +
+  theme_minimal() +
+  labs(x = "Residuals", y = "Number of observations")
+```
+Interpretation:
+* The residuals did not appear to be normally distributed. 
+* Instead, they seemed bimodal, with some large residuals at the lower    end and some at the upper end of the range. 
+* This indicated that some observations were quite far below or above     the group mean value for their group. 
+
+
+Testing the homogeneity of variances assumption
+```{r}
+# Levene test for ANOVA
+car::leveneTest(y = score ~ age * sex,center = mean,
+                data = peptic.ulcers.cleaned2)
+```
+Interpretation:
+* The results were statistically significant so the null hypothesis was   rejected. 
+* The equal variances assumption was not met. 
+* The two-way ANOVA had failed its assumptions.
+
+
+###############Alternatives when two-way ANOVA assumptions fail##########################################
+
+* Using a Friedman test when two-way ANOVA assumptions fail (MacFarland   & Yates, 2016). 
+* Friedman test can be conducted using friedman.test() on a set of means   for each group in a summary data format rather than raw data. 
+
+```{r}
+# Friedman two-way ANOVA for ranked data
+# R command requires summary data
+peptic.ulcer1 <- peptic.ulcers.cleaned2 %>%
+                drop_na(score) %>%
+                group_by(age, sex) %>%
+summarize(m.score = mean(x = score))
+
+peptic.ulcer1
+```
+
+
+```{r}
+# Friedman test
+
+HMA.score.by.age.sex.f <- friedman.test(formula = m.score ~ age | sex,
+                                   data = peptic.ulcer1)
+HMA.score.by.age.sex.f
+```
+Interpretation:
+* The Friedman test found no statistically significant difference in score by age and sex [χ2(2) = 1; p = 0.60]. 
+* A number of manuscripts suggesting that the Friedman test is not a      great option for addressing failed assumptions (Harwell & Serlin,       1994; Zimmerman & Zumbo, 1993).
+
+.............................................................................................................
+
+
+```{r}
+HMA.score.by.age.sex <- aov(formula = score ~ age * sex,
+                      data = peptic.ulcers.cleaned2)
+summary(object = HMA.score.by.age.sex)
+```
+Interpretation:
+based on above results,
+ There was a statistically significant interaction between age and sex on mean percent of HMA score [F(2, 232) = 3.396; p < .05].
+The table shows that the main effects of both age and sex are statistically significant, as indicated by the low p-values (p < 0.05). This suggests that both age and sex are important factors that contribute to the variation in the outcome variable.
+
+Additionally, the interaction between age and sex is also significant (p = 0.035188), indicating that the effect of age on the outcome variable may differ depending on the sex of the individual, and vice versa. Specifically, this result suggests that the effect of age on the outcome variable may be stronger or weaker in males compared to females, or vice versa.
+
+The residual term represents unexplained variation that cannot be attributed to any of the factors included in the model. The residual mean sum of squares is relatively large compared to the other factors, which suggests that there may be other important factors that were not included in the model.
+
+Overall, this ANOVA suggests that both age and sex, as well as their interaction, are important factors in explaining the variation in the outcome variable.
+..........................................................................................................
+
+################## Two-way ANOVA NHST for score by cause and over weight ######################################
+
+NHST Step 1: Write the null and alternate hypotheses
+
+  H0: The mean HMA score is the same across groups of cause and over weight.
+  HA: The mean HMA score is not same across groups of cause and over weight.
+  
+NHST Step 2: Compute the test statistic
+```{r}
+# two-way ANOVA HMA score by age and sex
+HMA.score.by.cause.over_weight <- aov(formula = score ~ cause * over_weight,
+                      data = peptic.ulcers.cleaned2)
+summary(object = HMA.score.by.cause.over_weight)
+```
+NHST Step 3: Calculate the probability that your test statistic is at least as big as it is if there is no relationship (i.e., the null is true)
+  The p-value in this case was .028
+
+NHST Steps 4 and 5: Interpret the probability and write a conclusion
+
+  There was a statistically significant interaction between age and sex on mean percent of HMA score [F(8, 222) = 2.200; p < .05]. 
+  
+  The main effect of cause appears to be statistically significant (p = 0.00265), indicating that it explains a significant amount of the variation in the outcome. Similarly, the main effect of over_weight is also statistically significant (p = 0.00209).
+
+The interaction between cause and over_weight also appears to be statistically significant (p = 0.02845), suggesting that the combined effect of these two factors is not simply additive, but instead interacts in some way to influence the outcome.
+
+.....................................................................................................
+
+```{r}
+#Tukey’s HSD post hoc test (From Line 1432)
+TukeyHSD(x = HMA.score.by.cause.over_weight)
+```
+
+###############################Two-way ANOVA assumptions########################################
+
+* The assumptions of homogeneity of variances and normality are also      applicable in two-way ANOVA. 
+* Normality would be a little trickier to test by looking at each group   since there are five degree groups, two sex groups, and 10              degree-by-sex groups (e.g., male and < high school). 
+* Instead of checking normality one group at a time when there are a      large number of groups in an ANOVA model, this assumption can be        checked by examining the residuals. 
+* The residuals are the distances between the value of the outcome for    each person and the value of the group mean for that person. 
+* When the residuals are normally distributed, this indicates that the    values in each group are normally distributed around the group mean.
+
+Test Normality
+* Shapiro-Wilk test to check the normality of the residuals               statistically
+
+```{r}
+# statistical test of normality for groups
+shapiro.test(x = HMA.score.by.cause.over_weight$residuals)
+```
+Interpretation:
+* The null hypothesis for the Shapiro-Wilk test is that the distribution   is normal. 
+* By accepting this null hypothesis with a p-value >0.01, the assumption   is met. 
+* So, this test shows that the residuals met the normality assumption.
+
+.....................................................................................................
+
+Testing the homogeneity of variances assumption
+```{r}
+# Levene test for ANOVA
+car::leveneTest(y = score ~ cause * over_weight,center = mean,
+                data = peptic.ulcers.cleaned2)
+```
+Interpretation:
+* The results were statistically significant so the null hypothesis was rejected. 
+* The equal variances assumption was not met. 
+
+* The two-way ANOVA met the normality assumption.
+
+Final interpretation:
+There was a statistically significant interaction between cause and over_weight on mean percent of HMA score [F(8, 222) = 2.200; p < .05].
+ The main effect of cause appears to be statistically significant (p = 0.00265), indicating that it explains a significant amount of the variation in the outcome. Similarly, the main effect of over_weight is also statistically significant (p = 0.00209).
+
+The interaction between cause and over_weight also appears to be statistically significant (p = 0.02845), suggesting that the combined effect of these two factors is not simply additive, but instead interacts in some way to influence the outcome.
+
+..............................................................................................................
+##############################################################
+Developing a logistic regression model
+#############################################################
+
+```{r}
+# open tableone package
+library(package = "tableone")
+
+```
+
+
+```{r}
+# get a table of descriptive statistics with bivariate tests
+table.desc <- CreateTableOne(data = peptic.ulcers.cleaned,
+                            strata = 'HMA.score_cat',
+                            vars = c("age_cat", "sex", "BMI", "cause", "HMA.score_cat"))
+```
+
+
+```{r}
+# print the table
+print(table.desc)
+```
+Interpretation:
+Overall, these results suggest that "age_cat", "sex", "BMI", "cause" may be associated with HMA score, with the highest level of score being associated with older age, female gender, and cause of irregular food intake and healthy weight and over weight. However, these are only descriptive statistics, and further analyses would be needed to establish any causal relationships or predictive models.
+
+....................................................................................................................
+
+```{r}
+# estimate the HMA score model and print results
+score.model <- glm(formula = HMA.score_cat ~ age_cat +sex + cause + BMI,
+                  data = peptic.ulcers.cleaned,
+                  family = binomial("logit"))
+
+```
+
+
+```{r}
+summary(object = score.model)
+```
+
+Interpretation:
+
+This is a logistic regression model (specified using the glm function in R) with the dependent variable HMA.score_cat and the independent variables age_cat, sex, cause, and BMI. The purpose of the model is to investigate the relationship between these independent variables and the probability of having a Hamilton score for Anxiety (HMA) among patients with peptic ulcers.
+
+The model output shows the estimates of the coefficients for each independent variable, along with their standard errors, z-values, and p-values. A coefficient estimate represents the expected change in the log-odds of having a high HMA score for a one-unit increase in the corresponding independent variable, holding all other variables constant.
+
+- The intercept term is statistically significant (p = 0.00899), indicating that the probability of having a high HMA score is significantly different from zero when all the independent variables are equal to zero.
+
+- The age_cat variables (age categories) are not statistically significant (p > 0.05), indicating that there is no evidence of a significant association between age category and the probability of having a high HMA score.
+
+- The sex variable is statistically significant (p = 0.04573), indicating that females are less likely to have a high HMA score than males, holding all other variables constant.
+
+- The cause variables (cause of peptic ulcer) are not all statistically significant, with only the cause of irregular food intake approaching significance (p = 0.07152).
+
+- The BMI variables (BMI categories) are statistically significant, indicating that being in the healthy weight category is associated with a lower probability of having a high HMA score, holding all other variables constant.
+
+- The null deviance represents the deviance of the null model (i.e., a model with only an intercept term), while the residual deviance represents the deviance of the fitted model. The difference between the null and residual deviances (22.39) indicates that the fitted model explains some of the variability in the data.
+
+- The AIC (Akaike information criterion) is a measure of the quality of the model fit, with lower values indicating better fit. In this case, the AIC is 324.67, which suggests a good fit of the model to the data.
+
+- Overall, the model suggests that sex and BMI categories are associated with the probability of having a high HMA score among patients with peptic ulcers. However, the other independent variables (age categories and cause of peptic ulcer) do not appear to be significantly associated with the outcome.
+.......................................................................................................
+
+```{r}
+#open odds.n.ends
+library(package = "odds.n.ends")
+```
+
+
+NHST Step 1: 
+
+H0: A model containing age, sex, bmi, cause is no better than the baseline at explaining HMA score.
+  HA: A model containing age, sex, bmi, cause is better than the baseline at explaining HMA score.
+
+NHST Step 2: Compute the test statistic
+
+```{r}
+# get model fit, model significance, odds ratios
+odds.n.ends(mod = score.model)
+```
+
+NHST Step 3: Calculate the probability that your test statistic is at least as big as it is if there is no relationship (i.e., the null is true)
+
+  The odds.n.ends() output also shows the model chi-squared of 22.3 with the        corresponding degrees of freedom of 10 and a p-value of <0.05.We can reject the null hypothesis.
+  
+NHST Steps 4 and 5: Interpret the probability and write a conclusion:
+
+- Logistic regression model significance: the result of a chi-squared test for the overall significance of the logistic regression model. The chi-squared value is 22.394 with 10 degrees of freedom and a p-value of 0.013, which suggests that the model is statistically significant.
+
+- Contingency tables (model fit): out of 238 cases, 79 were predicted to have a score of 1, and 50 of those were observed, while 52 were predicted to have a score of 0, and 107 of those were observed.
+
+- Count R-squared (model fit): The count R-squared value is 65.96639%, which suggests that the model is moderately effective at predicting the dependent variable.
+
+- Model sensitivity: the sensitivity of the model, which is the proportion of true positives (i.e., cases with an HMA score of 1 that were correctly predicted by the model) out of all actual positives (i.e., all cases with an HMA score of 1). The sensitivity value is 0.4901961.
+
+- Model specificity: the specificity of the model, which is the proportion of true negatives (i.e., cases with an HMA score of 0 that were correctly predicted by the model) out of all actual negatives (i.e., all cases with an HMA score of 0). The specificity value is 0.7867647.
+
+-In this case, the model has a sensitivity of 0.4902 (i.e., it correctly identifies 49.02% of actual positive cases) and a specificity of 0.7867 (i.e., it correctly identifies 78.67% of actual negative cases).
+
+########Compute and interpret odds ratios###################################
+
+- Predictor odds ratios and 95% CI: the odds ratios for each of the independent variables in the model, along with their 95% confidence intervals. 
+
+- age_cat31-50: The odds of having a higher HMA score category for patients between the ages of 31 and 50 years old is 0.799 times the odds for patients between 18 and 30 years old, holding all other variables constant, this group has a slightly lower odds of having a higher HMA score category compared to the reference group, but this difference is not statistically significant at the 0.05 level.
+
+- age_cat51-75: The odds of having a higher HMA score category for patients between the ages of 51 and 75 years old is 1.315 times the odds for patients between 18 and 30 years old, holding all other variables constant, this group has slightly higher odds of having a higher HMA score category compared to the reference group, but this difference is not statistically significant at the 0.05 level.
+
+- sexFEMALE: The odds of having a higher HMA score category for female patients is 0.537 times the odds for male patients, holding all other variables constant, female patients have a lower odds of having a higher HMA score category compared to male patients, and this difference is statistically significant at the 0.05 level.
+
+- causeNSAIDS use: The odds of having a higher HMA score category for patients with NSAIDS use as a cause of their peptic ulcers is 0.493 times the odds for patients with H. pylori infection as a cause, holding all other variables constant, patients with NSAIDS use as a cause have a lower odds of having a higher HMA score category compared to patients with H. pylori infection as a cause, but this difference is not statistically significant at the 0.05 level.
+
+- causeStress: The odds of having a higher HMA score category for patients with stress as a cause of their peptic ulcers is 0.544 times the odds for patients with H. pylori infection as a cause, holding all other variables constant, patients with stress as a cause have a lower odds of having a higher HMA score category compared to patients with H. pylori infection as a cause, but this difference is not statistically significant at the 0.05 level.
+
+- causeAlcohol: The odds of having a higher HMA score category for patients with alcohol use as a cause of their peptic ulcers is 0.350 times the odds for patients with H. pylori infection as a cause, holding all other variables constant, patients with alcohol use as a cause have a significantly lower odds of having a higher HMA score category compared to patients with H. pylori infection as a cause, but the low sample size of this group may make this result unstable.
+
+- causeIrregular food intake: The odds of having a higher HMA score category for patients with irregular food intake as a cause of their peptic ulcers is 0.447 times the odds for patients with H. pylori infection as a cause, holding all other variables constant, patients with irregular food intake as a cause have a lower odds of having a higher HMA score category compared to patients with H. pylori infection as a cause, but this difference is not statistically significant at the 0.05 level.
+
+- BMIhealthy weight: The odds of having a higher HMA score category for patients with a healthy weight is 0.389 times the odds for patients who are underweight, holding all other variables constant, patients with a healthy weight have a lower odds of having a higher HMA score category
+
+##############Compute and interpret model fit############################
+
+* Overall, the model correctly predicted 79 of 238 observations (65.96%); the       model was more specific (78.67%) than sensitive (49.0%), indicating that it was     better at classifying low score than high scores.
+
+$`Model sensitivity`
+[1] 0.4901961
+
+$`Model specificity`
+[1] 0.7867647
+...........................................................................................................
+
+
+######################Check assumptions##################################
+
+ASSUMPTION 1: Independence of observations
+
+The Observations are independent and this assumption is met
+
+ASSUMPTION 2: No multicollinearity
+
+```{r}
+# compute GVIF
+car::vif(mod = score.model)
+```
+Interpretation:
+* None of the values in the right-hand column were greater than 2.5, so this  assumption is met.
+
+
+ASSUMPTION 3: Linearity
+
+
+```{r}
+peptic.ulcers.cleaned3 <- peptic.ulcers %>%
+  dplyr::select(age,sex,cause,over_weight, score) %>%
+  mutate(cause= recode_factor(.x = cause,
+                                           `1` = "H Pylori", 
+                                  `2` = "NSAIDS use", 
+                                  `3` = "Stress", 
+                                  `4` = "Alcohol",
+                                  `5` = "Irregular food intake"))%>%
+  mutate(over_weight= recode_factor(.x = over_weight, 
+                                  `1` = "under weight", 
+                                  `2` = "healthy weight", 
+                                  `3` = "over weight", 
+                                  `4` = "obesity",
+                                  .default = "unknown"))
+  
+
+
+head(peptic.ulcers.cleaned3)
+  
+
+```
+
+
+```{r}
+score.by.age <- lm(formula = score ~age + sex+ cause+ over_weight ,
+                 data = peptic.ulcers.cleaned3, 
+                 na.action = na.exclude)
+```
+
+```{r}
+peptic.ulcers.cleaned3 %>%
+ggplot(aes(x = age, y = score)) +
+geom_point(aes(size = "County"), color = "#7463AC", alpha = .6) +
+geom_smooth(aes(color = "Linear fit line"), method = "lm", se = FALSE) +
+geom_smooth(aes(color = "Loess curve"), se = FALSE) +
+theme_minimal() +
+labs(y = "score", x = "age in years") +
+scale_color_manual(values = c("gray60", "deeppink"), name = "") +
+scale_size_manual(values = 2, name = "")
+```
+
+Interpretation:
+* The Loess curve stays close enough to the linear fit line, the linearty assumption is met.
+
+- The Loess curve stays close enough to the linear fit line, it suggests that the relationship between the variables is approximately linear, which would satisfy the linearity assumption for linear regression. However, it's still possible for the relationship between the variables to deviate from linearity in some parts of the data.
+
+
+Final Interpretation:
+
+- Interpretation:
+- Overall, these results suggest that "age_cat", "sex", "BMI", "cause" may be associated with HMA score, with the highest level of score being associated with older age, female gender, and cause of irregular food intake and healthy weight and over weight.
+- The interaction between cause and over_weight also appears to be statistically significant (p = 0.02845), suggesting that the combined effect of these two factors is not simply additive, but instead interacts in some way to influence the outcome.
+- the interaction between age and sex is also significant (p = 0.035188), indicating that the effect of age on the outcome variable may differ depending on the sex of the individual, and vice versa. Specifically, this result suggests that the effect of age on the outcome variable may be stronger or weaker in males compared to females, or vice versa.
+
+The residual term represents unexplained variation that cannot be attributed to any of the factors included in the model. The residual mean sum of squares is relatively large compared to the other factors, which suggests that there may be other important factors that were not included in the model.
+
+Overall, this ANOVA suggests that both age and sex, as well as their interaction, are important factors in explaining the variation in the outcome variable.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
